@@ -1,0 +1,13 @@
+<%- include('header.ejs'); %>
+ <meta http-equiv="refresh" content="2"> <!-- for demo's sake, I do this instead of creating a websocket-->
+ <script src="/js/script.js"></script>
+</head>
+<body>
+<a href="/" class="link">Go Back</a>
+<p>Welcome <%=key%>, You are logged in to the Split Software Boxes Demo.</p>
+<br />
+<table id='myTable'>  
+<%- table %>
+</table>
+
+<%- include('footer.ejs') %>
