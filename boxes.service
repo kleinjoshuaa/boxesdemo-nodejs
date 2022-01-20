@@ -1,0 +1,14 @@
+[Unit]
+Description=boxes
+Documentation=https://github.com/kleinjoshuaa/boxesdemo-nodejs/
+After=network.target
+
+[Service]
+Type=simple
+User=node
+ExecStart=/usr/bin/node /usr/src/boxes/index.js
+WorkingDirectory=/usr/src/boxes
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

@@ -1,3 +1,5 @@
+
+const enVars = require('dotenv').config().parsed;
 const express = require("express");
 const path = require('path');
 const bodyParser = require("body-parser");
@@ -36,7 +38,7 @@ function createTableData() {
 
 const table = createTableData();
 
-function buildTable(table, splitClient, splitName, eventName, key) {
+function buildTable(table, splitClient, splitName, eventName) {
     let htmlString = '';
     for(let rowIdx = 0; rowIdx < table.length; rowIdx += 1) {
         htmlString += "<tr>";
@@ -86,7 +88,7 @@ function buildTable(table, splitClient, splitName, eventName, key) {
 }
 
 
-function createFactoryArgs(apiKey,  debug) {
+function createFactoryArgs(debug) {
 return {
     startup: {
         requestTimeoutBeforeReady: 0.8, // 800ms
@@ -95,7 +97,7 @@ return {
         eventsFirstPushWindow: 10 // 10 sec
     },
     core: {
-        authorizationKey: apiKey,
+        authorizationKey: enVars.API_KEY,
         trafficType: 'user',
         labelsEnabled: true
     },
@@ -112,6 +114,9 @@ return {
     }
 }
 
+// not checking for rediness here, instead we will check when we call getTreatment
+const splitClient = SplitFactory(createFactoryArgs(false)).client();
+
 app.set('view engine', 'ejs');
 
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -125,93 +130,77 @@ app.get("/", (req, res) => {
 });
 
 
-app.get('/login', (req, res) => {
-    let cookie = req.cookies.SPLIT_BOX_DEMO;
-    // Get an object asynchronously, with a default value
-    console.log('cookie recieved, loading page:'+JSON.stringify(cookie));
-    db.load(cookie, 'default')
-        .then(function(val)
-    {
-        // this could be improved with a global factory, however this is kind of a contrived demo beceause you don't know the api key until someone enters it
-        let factory = SplitFactory(createFactoryArgs(val.apiKey, false));
-        let splitClient = factory.client();
-        let tableHTML;
+    app.get("/boxStream", (req, res) => {
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Connection", "keep-alive");
+      res.flushHeaders(); // flush the headers to establish SSE with client
+      let cookie = req.cookies.SPLIT_BOX_DEMO; // get the split name and the event name from the cookie reference
 
-        splitClient.once(splitClient.Event.SDK_READY, function () {
-        tableHTML = buildTable(table, splitClient, val.splitName, val.eventName, val.key);
-        res.render("demo", {
-            key: val.key,
-            eventName: val.eventName,
-            splitName: val.splitName,
-            splitClient: splitClient,
-            table: tableHTML
-          }, );})
+      db.load(cookie, "default").then(function (val) {
+        if (val == "default") {
+          console.error("failed reading cookie for updating the boxes");
+        }
+        // send if ready 
+        // (since the SDK client is created upon server startup we expect this to be ready rather than polling for the SDK_READY event which likely already was fired by the time we get here)
+        splitClient.ready().then(() => {
+          res.write(
+            `data: ${buildTable(
+              table,
+              splitClient,
+              val.splitName,
+              val.eventName
+            )}\n\n`
+          );
         });
 
+        // update upon SDK_UPDATE, no polling or refresh needed!
+        splitClient.on(splitClient.Event.SDK_UPDATE, () => {
+          res.write(
+            `data: ${buildTable(
+              table,
+              splitClient,
+              val.splitName,
+              val.eventName
+            )}\n\n`
+          );
+        });
+
+        // If client closes connection, stop sending events
+        res.on("close", () => {
+          console.log("client dropped");
+          res.end();
+        });
+      });
     });
-
-
 
 
 app.post("/login", (req, res) => {
-    const { key, apiKey, eventName, splitName} = req.body;
-    
-    db.save( {key: key,
-        apiKey: apiKey,
-        eventName: eventName,
-        splitName: splitName}).then(function(cookieId) {
-            let cookie = req.cookies.SPLIT_BOX_DEMO;
-            if (cookie === undefined) {
-                // no: set a new cookie
-                // var randomNumber=Math.random().toString(); // not cryptographically secure, but good enough for our purposes
-                // randomNumber=randomNumber.substring(2,randomNumber.length);
-                res.cookie('SPLIT_BOX_DEMO',cookieId, { maxAge: 900000, httpOnly: true });
-                console.log('cookie created successfully');
-              } else {
-                // yes, cookie was already present 
-                console.log('cookie exists', cookie);
-              } 
-    let factory = SplitFactory(createFactoryArgs(apiKey,  false));
-    splitClient = factory.client();
-    let tableHTML;
-
-    splitClient.once(splitClient.Event.SDK_READY, function () {
-        tableHTML = buildTable(table, splitClient, splitName, eventName, key);
-        res.render("demo", {
-            key: key,
-            eventName: eventName,
-            splitName: splitName,
-            splitClient: splitClient,
-            table: tableHTML
-          }, );})
-        });
-    
+  const { eventName, splitName } = req.body;
+  db.save({
+    eventName: eventName,
+    splitName: splitName,
+  }).then(function (cookieId) {
+    res.cookie("SPLIT_BOX_DEMO", cookieId, { maxAge: 900000, httpOnly: true });
+    console.log("cookie created successfully");
+    res.render("demo",{} );
   });
+});
 
-  app.post('/track', function(req, res) {
-    console.log('body: '+JSON.stringify(req.body));
-    const { user, eventName, value, treatment} = req.body
-
-    let cookie = req.cookies.SPLIT_BOX_DEMO;
-    // Get an object asynchronously, with a default value
-    console.log('cookie recieved:'+JSON.stringify(cookie));
-    db.load(cookie, 'default')
-    
-        .then(function(val)
-    {
-        if(val == 'default'){
-            console.error('failed tracking on the server')
-        }
-        console.log(val);
-        // this could be improved with a global factory, however this is kind of a contrived demo beceause you don't know the api key until someone enters it
-        let factory = SplitFactory(createFactoryArgs(val.apiKey, false));
-        let splitClient = factory.client();
-        let trackResult = splitClient.track(user, 'user', eventName, parseFloat(value), {"treatment_string": treatment}  );
-        trackResult ? console.log('tracked successfully on the server') : console.log('tracking failed on the server');
-        splitClient.destroy();
-        splitClient = null;
-        res.sendStatus(200);
-    });
+  app.post("/track", function (req, res) {
+    const { user, eventName, value, treatment } = req.body;
+    let trackResult = splitClient.track(
+      user,
+      "user",
+      eventName,
+      parseFloat(value),
+      { treatment_string: treatment }
+    );
+    trackResult
+      ? console.log("tracked successfully on the server")
+      : console.log("tracking failed on the server");
+    res.sendStatus(200);
   });
 
 
