@@ -1,4 +1,4 @@
-function postImpression(data) {
+function postEvent(data) {
     fetch("/track", {
       method: "POST", // or 'PUT'
       headers: {
@@ -23,7 +23,7 @@ function postImpression(data) {
         alert(message + " " + value);
       }
       if (value != null && eventName != "") {
-        result = postImpression(parms);
+        result = postEvent(parms);
         }
            
     };
