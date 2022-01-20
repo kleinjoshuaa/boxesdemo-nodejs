@@ -6,11 +6,7 @@ function postImpression(data) {
       },
       body: `user=${data.user}&eventName=${data.eventName}&value=${data.value}&treatment=${data.treatment}`,
     }).then( (data) => {
-<<<<<<< HEAD
-      console.log('Impression tracked!'+JSON.stringify(data))
-=======
       console.log('Impression tracked!')
->>>>>>> 9d219be3d12538d899da7db39785ee447c3c3111
     })
       .catch((error) => {
         console.error("Error:", error);
