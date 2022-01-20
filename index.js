@@ -131,7 +131,7 @@ app.get("/", (req, res) => {
 
 
     app.get("/boxStream", (req, res) => {
-      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Cache-Control", "no-store");
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Connection", "keep-alive");
@@ -142,6 +142,13 @@ app.get("/", (req, res) => {
         if (val == "default") {
           console.error("failed reading cookie for updating the boxes");
         }
+        // send heartbeat   
+        const interval = 60000;
+        let intervalId = setInterval(function() {
+          res.write(`:\n\n`);
+        }, interval);
+
+
         // send if ready 
         // (since the SDK client is created upon server startup we expect this to be ready rather than polling for the SDK_READY event which likely already was fired by the time we get here)
         splitClient.ready().then(() => {
@@ -153,7 +160,7 @@ app.get("/", (req, res) => {
               val.eventName
             )}\n\n`
           );
-        });
+
 
         // update upon SDK_UPDATE, no polling or refresh needed!
         splitClient.on(splitClient.Event.SDK_UPDATE, () => {
@@ -166,12 +173,18 @@ app.get("/", (req, res) => {
             )}\n\n`
           );
         });
-
+        res.write()
         // If client closes connection, stop sending events
         res.on("close", () => {
           console.log("client dropped");
           res.end();
         });
+
+
+
+        });
+
+
       });
     });
 
