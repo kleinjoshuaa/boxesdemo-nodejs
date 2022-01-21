@@ -6,7 +6,7 @@ function postEvent(data) {
       },
       body: `user=${data.user}&eventName=${data.eventName}&value=${data.value}&treatment=${data.treatment}`,
     }).then( (data) => {
-      console.log('Impression tracked!')
+      console.log('Event tracked!')
     })
       .catch((error) => {
         console.error("Error:", error);
