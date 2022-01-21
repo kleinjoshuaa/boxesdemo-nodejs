@@ -143,7 +143,7 @@ app.get("/", (req, res) => {
           console.error("failed reading cookie for updating the boxes");
         }
         // send heartbeat   
-        const interval = 60000;
+        const interval = 60000; // every minute
         let intervalId = setInterval(function() {
           res.write(`:\n\n`);
         }, interval);
