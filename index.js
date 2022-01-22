@@ -13,7 +13,7 @@ const { create } = require("domain");
 
 
 function createTableData() {
-    const alphabet = "abcdefghijklmnopqrstuvwxyz".split(''); 
+    const alphabet = "abcdefghijklmnopqrstuvwxyz".split('');
     const account = [
     ["Nike", "Nike", "Nike", "Apple", "Apple", "Apple", "LinkedIn", "Best Buy", "Best Buy", "Best Buy"],
     ["Nike", "Nike", "Nike", "Apple", "Apple", "Apple", "LinkedIn", "Best Buy", "Best Buy", "Best Buy"],
