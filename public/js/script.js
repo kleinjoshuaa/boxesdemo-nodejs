@@ -32,7 +32,7 @@ function postEvent(data) {
 
       source.addEventListener('message', message => {
         console.log('Got Message');
-        // Display the event data in the 'myTable' table
+        // Display the event data in the myTable table
           document.querySelector('#myTable').innerHTML = message.data;
       });
 
