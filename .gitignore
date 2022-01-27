@@ -2,3 +2,5 @@ db
 node_modules
 .env
 db/sessionVars.json
+.ebextension
+dump.rdb
