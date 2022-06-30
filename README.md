@@ -20,4 +20,7 @@ To run, use
 node index.js
 ```
 
-It will create a server on port 3000
+It will create a server on port 3000.
+
+
+Once you nagivate to the app you'll have a 
