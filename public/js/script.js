@@ -24,11 +24,7 @@ function postEvent(data) {
         alert(message + " " + value);
       }
       if (value != null && eventName != "") {
-        analytics.identify(parms.user, {
-          row: parms.user.substr(0,1),
-          col: parms.user.substr(1)
-        });
-        analytics.track('clicked_from_segment', {parms});
+
         result = postEvent(parms);
         }
            
