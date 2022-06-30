@@ -44,6 +44,6 @@ CreateBoxSplit <workspace name> <environment name> <trafficType name> <newSplitN
 
 Once the split is created, you can use that as the split name and click the **Login** button.
 
-Once logged in you should be able to see updates to the box array in realtime as the dynamic configuration and/or split rollout plan is updated.
+Once logged in you should be able to see updates to the box array in realtime as the dynamic configuration and/or split rollout plan is updated. You can click on individual boxes in the box array to send events if you passed in an event name when you logged in.
 
 ![](app2.jpg)
