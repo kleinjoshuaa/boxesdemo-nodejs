@@ -36,7 +36,7 @@ The following shell script can automatically create the split for you if you hav
 The syntax for running this command can be seen below
 
 ```
-CreateBoxSplit <workspace name> <environment name> <trafficType name> <newSplitName> <admin_apiKey>
+CreateBoxSplit <workspaceName> <environmentName> <trafficTypeName> <newSplitName> <adminApiKey>
 ```
 
 (Make sure you use an admin API Key that allows you to create a split for the same environment and workspace that your Server Side SDK Key is for)
