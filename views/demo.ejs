@@ -1,12 +1,195 @@
 <%- include('header.ejs'); %>
-<!-- <meta http-equiv="refresh" content="2"> --> <!-- Now using Server Side Events!-->
  <script src="/js/script.js"></script>
+ <script src="https://cdn.split.io/sdk/split-10.18.2.min.js"></script>
+
+ <script>
+     const splitAPIKey = "<%- apiKey %>";
+     const splitName = "<%- splitName %>";
+     const metricName = "<%- event %>";
+     let splitApiArgs = {
+         startup: {
+             requestTimeoutBeforeReady: 0.8, // 800ms
+             retriesOnFailureBeforeReady: 1, // 1 sec
+             readyTimeout: 1.5, // 1.5 sec
+             eventsFirstPushWindow: 10 // 10 sec
+         },
+         core: {
+             authorizationKey: splitAPIKey,
+             key: 'josh',
+             trafficType: 'user',
+             labelsEnabled: true
+         },
+         scheduler: {
+             featuresRefreshRate: 1, // 30 sec 
+             segmentsRefreshRate: 60, // 60 sec 
+             metricsRefreshRate: 60, // 60 sec
+             impressionsRefreshRate: 60, // 60 sec
+             eventsPushRate: 1, // 60 sec
+             eventsQueueSize: 500 // 500 items
+         },
+         debug: false
+     };
+ 
+             
+ 
+ 
+     var factory = splitio(splitApiArgs);
+     var client = factory.client();
+     function createTableData() {
+         const alphabet = "abcdefghijklmnopqrstuvwxyz".split('');
+         const account = [
+         ["Nike", "Nike", "Nike", "Apple", "Apple", "Apple", "LinkedIn", "Best Buy", "Best Buy", "Best Buy"],
+         ["Nike", "Nike", "Nike", "Apple", "Apple", "Apple", "LinkedIn", "Best Buy", "Best Buy", "Best Buy"],
+         ["Nike", "Nike", "Nike", "Apple", "Apple", "Apple", "LinkedIn", "Best Buy", "Best Buy", "Best Buy"],
+         ["Google", "Google", "Google", "Microsoft", "Microsoft", "Microsoft", "Microsoft", "Best Buy", "Best Buy", "Best Buy"],
+         ["Google", "Google", "Google", "Microsoft", "Microsoft", "Microsoft", "Microsoft", "Pintrest", "Pintrest", "Pintrest"],
+         ["Google", "Google", "Google", "Microsoft", "Microsoft", "Microsoft", "Microsoft", "Pintrest", "Pintrest", "Pintrest"],
+         ["Dell", "Dell", "Dell", "Microsoft", "Microsoft", "Microsoft", "Microsoft", "Pintrest", "Pintrest", "Pintrest"],
+         ["Zoom", "Zoom", "Zoom", "Slack", "Slack", "Slack", "Samsung", "Disney", "Disney", "Disney"],
+         ["Zoom", "Zoom", "Zoom", "Slack", "Slack", "Slack", "Samsung", "Disney", "Disney", "Disney"],
+         ["Zoom", "Zoom", "Zoom", "Slack", "Slack", "Slack", "Samsung", "Disney", "Disney", "Disney"]
+     ]; // theoretically you could expand this table if you wanted. It would be a non-trivial exercise to get realistic clusters like this though
+         let table = [];
+         for (let i = 0; i < 10; i += 1) {
+             table.push([]);
+             for (let j = 0; j < 10; j += 1 ) {
+                 table[i][j] = {user: alphabet[i]+j, account: account[i][j]}
+             }
+         }
+         return table;
+     }
+     
+ 
+     function createPopup(parms) {
+         return function() {
+             let message = parms.message;
+             let client = parms.client;
+             let metric = parms.metric;
+             let treatment = parms.treatment;
+             let value = 0+parseFloat(parms.value);
+ 
+             if(message != null) {
+                 alert(message+ " "+value);
+             }
+             if(client != null && value != null && metric != '') {
+                 let result = client.track('user', metric, 0+parseFloat(value), {
+                     "treatment_string": treatment
+                 });
+                 result ? console.log('event tracked!') : console.log('error sending event ');
+             }
+         };
+     }
+ 
+     const users = createTableData();
+     window.addEventListener('load', () => {
+         drawBoxes({splitName: splitName, factory: factory, table:users, metric: metricName});
+ 
+         client.on(client.Event.SDK_UPDATE, () => {
+             console.log('SDK Updated!');
+             updateTreatments({splitName: splitName, factory: factory, table:users, metric: metricName});
+         })
+ 
+     });
+ 
+     function updateTreatments(parms) {
+         let table = parms.table;
+         let splitName = parms.splitName;
+         let factory = parms.factory;
+         let metric = parms.metric;
+ 
+         table.forEach(function (row, index, array) {
+             row.forEach(function (cell, index, array) {
+                 client = this.factory.client(cell.user);
+                 styleCell(cell, client, this.splitName, this.metric );
+             }, {table: this.table, splitName: this.splitName, factory: this.factory, metric: this.metric})
+         }, {table: table, splitName: splitName, factory: factory, metric: metric})
+ 
+     }
+ 
+ 
+     function drawBoxes(parms) {
+         let table = parms.table;
+         let splitName = parms.splitName;
+         let factory = parms.factory;
+         let metric = parms.metric;
+ 
+         let tbl = document.getElementById("myTable"); // Get the table
+         let tableRef = document.getElementById("myTable").getElementsByTagName('tbody')[0];
+ 
+         table.forEach(buildRow, {splitName: splitName, tableRef:tableRef, metric:metric, factory:factory})
+     }
+     
+     function buildRow(tblRow, index, array) {
+         let tableRef = this.tableRef;
+         let row = tableRef.insertRow(tableRef.rows.length);	
+         tblRow.forEach(buildCell, {row: row, factory:this.factory, splitName: this.splitName, metric: this.metric});
+     }
+ 
+     function buildCell(rowElem, index, array) {
+         let row = this.row;
+         let cell = row.insertCell();
+         let node = document.createTextNode(rowElem.user);
+         let splitName = this.splitName;
+         let metric = this.metric;
+ 
+         cell.appendChild(node);
+         cell.id = rowElem.user+"-cell";
+ 
+         // get treatment info
+         let factory = this.factory;
+         try {
+             client = factory.client(rowElem.user);
+ 
+             client.once(client.Event.SDK_READY, styleCellFactory(rowElem, client,  splitName, metric))
+             
+         } catch(e){
+             console.log(e);
+         }
+     }
+ 
+     function styleCellFactory(rowElem, client,  splitName, metric) {
+         return () => styleCell(rowElem, client,  splitName, metric)
+     }
+         
+ 
+         function styleCell(rowElem, client,  splitName, metric) {
+             const cell = document.getElementById(rowElem.user+'-cell');
+             let attributes = {
+                 row: rowElem.user.charAt(0),
+                 col: rowElem.user.charAt(1),
+                 userid: rowElem.user,
+                 account: rowElem.account
+             }
+             const splitResult = client.getTreatmentWithConfig(splitName, attributes);
+             //console.log('SDK Ready!')
+             if (splitResult.config != null) {
+                 var configs = JSON.parse(splitResult.config);
+                 cell.style.fontSize = configs.font_size;
+                 cell.onclick = createPopup({message: configs.popup_message,  value: configs.popup_value, client: client, metric: metric, treatment: splitResult.treatment});
+             } else {
+                 console.log('Treatment not recieved, using default')
+             }
+ 
+             if (splitResult.treatment === 'premium') {
+                 cell.style.backgroundColor = "rgb(0, 124, 156)";
+             } else if (splitResult.treatment === 'standard') {
+                 cell.style.backgroundColor = "rgb(255, 70, 82)";
+             } else if (splitResult.treatment === 'current') {
+                 cell.style.backgroundColor = "rgb(173, 193, 116)";
+             } else {
+                 console.log("unexpected treatment: " + splitResult.treatment);
+                 cell.style.backgroundColor = "rgb(255, 70, 82)";
+             }
+ 
+         }
+ 
+     </script>
+ 
 </head>
 <body>
-<!-- <a href="/" class="link">Go Back</a> -->
-<!-- <p>Welcome, you are logged in to the Split Software Boxes Demo.</p>  -->
 <br />
-<table id='myTable'>  
+<table id="myTable">
+    <tbody />
 </table>
 
 <%- include('footer.ejs') %>
