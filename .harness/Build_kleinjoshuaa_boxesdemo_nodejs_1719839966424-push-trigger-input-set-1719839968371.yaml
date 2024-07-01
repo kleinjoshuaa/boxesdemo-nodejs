@@ -1,0 +1,14 @@
+inputSet:
+  name: Build_kleinjoshuaa_boxesdemo_nodejs_1719839966424-push-trigger-input-set
+  identifier: Build_kleinjoshuaa_boxesdemo_nodejs_1719839966424pushtriggerinputset
+  orgIdentifier: default
+  projectIdentifier: Split_CICD_pipeline
+  pipeline:
+    identifier: Build_kleinjoshuaa_boxesdemo_nodejs_1719839966424
+    properties:
+      ci:
+        codebase:
+          build:
+            type: branch
+            spec:
+              branch: <+trigger.branch>
