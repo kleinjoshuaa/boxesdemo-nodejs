@@ -1,0 +1,14 @@
+inputSet:
+  name: Build_kleinjoshuaa_boxesdemo_nodejs_1719839966424-pr-trigger-input-set
+  identifier: Build_kleinjoshuaa_boxesdemo_nodejs_1719839966424prtriggerinputset
+  orgIdentifier: default
+  projectIdentifier: Split_CICD_pipeline
+  pipeline:
+    identifier: Build_kleinjoshuaa_boxesdemo_nodejs_1719839966424
+    properties:
+      ci:
+        codebase:
+          build:
+            type: PR
+            spec:
+              number: <+trigger.prNumber>
